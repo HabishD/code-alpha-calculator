@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="icon" href="cal.png" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>abish Ultimate Calculator</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.7.0/math.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <style>
+    :root {
+      --bg: #0b0f1c;
+      --fg: #eee;
+      --accent: #46adbb;
+      --panel: #1a1f2b;
+    }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    body {
+      background: var(--bg);
+      color: var(--fg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 100vh;
+      padding: 2rem;
+    }
+    h1 {
+      font-size: 2rem;
+      color: var(--accent);
+      margin-bottom: 1rem;
+    }
+    #calculator {
+      background: var(--panel);
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 0 20px #00f7ff55;
+      width: 100%;
+      max-width: 1000px;
+    }
+    .display {
+      width: 100%;
+      background: #111;
+      color: #0f0;
+      padding: 1rem;
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+      border-radius: 8px;
+    }
+    .keys {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 0.75rem;
+    }
+    .keys button {
+      padding: 1rem;
+      font-size: 1.2rem;
+      background: #222;
+      border: none;
+      color: white;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .keys button:hover {
+      background: #00f7ff55;
+    }
+    canvas#bg-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: -1;
+      width: 100vw;
+      height: 100vh;
+    }
+    .theme-toggle {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+    }
+    .matrix-section {
+      margin-top: 2rem;
+    }
+    .matrix-input {
+      display: flex;
+      gap: 1rem;
+    }
+    .matrix-box {
+      flex: 1;
+    }
+    textarea {
+      width: 100%;
+      height: 100px;
+      background: #111;
+      color: #0f0;
+      padding: 0.5rem;
+      border-radius: 8px;
+    }
+    .result {
+      margin-top: 1rem;
+      padding: 1rem;
+      background: #1c1c1c;
+      color: var(--accent);
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="bg-canvas"></canvas>
+  <div class="theme-toggle">
+    <button onclick="toggleTheme()">🌗</button>
+  </div>
+  <h1>abish Ultra Calculator</h1>
+  <div id="calculator">
+    <div class="display" id="display">0</div>
+    <div class="keys">
+      <button onclick="clearDisplay()">C</button>
+      <button onclick="append('/')">/</button>
+      <button onclick="append('*')">*</button>
+      <button onclick="append('-')">-</button>
+      <button onclick="append('+')">+</button>
+      <button onclick="calculate()">=</button>
+
+      <button onclick="append('7')">7</button>
+      <button onclick="append('8')">8</button>
+      <button onclick="append('9')">9</button>
+      <button onclick="append('(')">(</button>
+      <button onclick="append(')')">)</button>
+      <button onclick="append('sqrt(')">√</button>
+
+      <button onclick="append('4')">4</button>
+      <button onclick="append('5')">5</button>
+      <button onclick="append('6')">6</button>
+      <button onclick="append('pow(')">^</button>
+      <button onclick="append('log(')">log</button>
+      <button onclick="append('ln(')">ln</button>
+
+      <button onclick="append('1')">1</button>
+      <button onclick="append('2')">2</button>
+      <button onclick="append('3')">3</button>
+      <button onclick="append('sin(')">sin</button>
+      <button onclick="append('cos(')">cos</button>
+      <button onclick="append('tan(')">tan</button>
+
+      <button onclick="append('0')">0</button>
+      <button onclick="append('.')">.</button>
+      <button onclick="append('pi')">π</button>
+      <button onclick="append('e')">e</button>
+      <button onclick="append('abs(')">|x|</button>
+      <button onclick="append('exp(')">exp</button>
+    </div>
+    <div class="result" id="result-render">Rendered: \(0\)</div>
+  </div>
+
+  <div class="matrix-section">
+    <h2>Matrix Operations</h2>
+    <div class="matrix-input">
+      <div class="matrix-box">
+        <label>Matrix A</label>
+        <textarea id="matrixA">[ [1,2], [3,4] ]</textarea>
+      </div>
+      <div class="matrix-box">
+        <label>Matrix B</label>
+        <textarea id="matrixB">[ [5,6], [7,8] ]</textarea>
+      </div>
+    </div>
+    <button onclick="multiplyMatrices()">Multiply A x B</button>
+    <button onclick="addMatrices()">Add A + B</button>
+    <div class="result" id="matrixResult">Result: []</div>
+  </div>
+
+  <script>
+    let expression = "";
+
+    function append(value) {
+      expression += value;
+      document.getElementById("display").innerText = expression;
+      document.getElementById("result-render").innerHTML = "Rendered: \\(" + expression + "\\)";
+      MathJax.typesetPromise();
+    }
+
+    function clearDisplay() {
+      expression = "";
+      document.getElementById("display").innerText = "0";
+      document.getElementById("result-render").innerHTML = "Rendered: \\(0\\)";
+    }
+
+    function calculate() {
+      try {
+        const result = math.evaluate(expression);
+        document.getElementById("display").innerText = result;
+        document.getElementById("result-render").innerHTML = "Rendered: \\(" + result + "\\)";
+        expression = result.toString();
+        MathJax.typesetPromise();
+      } catch {
+        document.getElementById("display").innerText = "Error";
+      }
+    }
+
+    function multiplyMatrices() {
+      try {
+        const a = JSON.parse(document.getElementById("matrixA").value);
+        const b = JSON.parse(document.getElementById("matrixB").value);
+        const res = math.multiply(a, b);
+        document.getElementById("matrixResult").innerText = "Result: " + JSON.stringify(res);
+      } catch (e) {
+        document.getElementById("matrixResult").innerText = "Error: Invalid Matrix";
+      }
+    }
+
+    function addMatrices() {
+      try {
+        const a = JSON.parse(document.getElementById("matrixA").value);
+        const b = JSON.parse(document.getElementById("matrixB").value);
+        const res = math.add(a, b);
+        document.getElementById("matrixResult").innerText = "Result: " + JSON.stringify(res);
+      } catch (e) {
+        document.getElementById("matrixResult").innerText = "Error: Invalid Matrix";
+      }
+    }
+
+    function toggleTheme() {
+      const root = document.documentElement;
+      if (root.style.getPropertyValue('--bg') === '#0b0f1c') {
+        root.style.setProperty('--bg', '#f4f4f4');
+        root.style.setProperty('--fg', '#111');
+        root.style.setProperty('--panel', '#ffffff');
+      } else {
+        root.style.setProperty('--bg', '#0b0f1c');
+        root.style.setProperty('--fg', '#eee');
+        root.style.setProperty('--panel', '#1a1f2b');
+      }
+    }
+
+    // Background wire animation
+    const canvas = document.getElementById('bg-canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    let wires = [];
+    for (let i = 0; i < 100; i++) {
+      wires.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        dx: (Math.random() - 0.5) * 1.5,
+        dy: (Math.random() - 0.5) * 1.5
+      });
+    }
+
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (let i = 0; i < wires.length; i++) {
+        const p = wires[i];
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
+        ctx.fillStyle = '#00f7ff88';
+        ctx.fill();
+
+        p.x += p.dx;
+        p.y += p.dy;
+
+        if (p.x < 0 || p.x > canvas.width) p.dx *= -1;
+        if (p.y < 0 || p.y > canvas.height) p.dy *= -1;
+      }
+      requestAnimationFrame(animate);
+    }
+    animate();
+  </script>
+</body>
+</html>
